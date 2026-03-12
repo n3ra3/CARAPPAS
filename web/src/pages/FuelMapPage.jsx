@@ -2,6 +2,7 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, Fuel, MapPin, RotateCcw, Loader } from 'lucide-react';
+import { fuelReviewsAPI } from '../services/api';
 
 // Фикс иконок Leaflet для webpack/vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -94,6 +95,12 @@ function getDistance(lat1, lon1, lat2, lon2) {
 export default function FuelMapPage() {
   const [userPos, setUserPos] = useState(null);
   const [stations, setStations] = useState([]);
+  const [reviewsSummary, setReviewsSummary] = useState({});
+  const [stationReviews, setStationReviews] = useState([]);
+  const [stationMyReview, setStationMyReview] = useState(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [route, setRoute] = useState(null);
   const [selectedStation, setSelectedStation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +110,60 @@ export default function FuelMapPage() {
   useEffect(() => {
     getUserLocation();
   }, []);
+
+  const loadReviewsSummary = async (stationsList) => {
+    try {
+      const ids = stationsList.map((s) => s.id);
+      if (ids.length === 0) {
+        setReviewsSummary({});
+        return;
+      }
+
+      const res = await fuelReviewsAPI.getSummary(ids);
+      const map = {};
+      (res.data.summaries || []).forEach((row) => {
+        map[String(row.station_osm_id)] = {
+          avgRating: Number(row.avg_rating),
+          reviewsCount: row.reviews_count
+        };
+      });
+      setReviewsSummary(map);
+    } catch {
+      // Сводка отзывов не должна ломать карту.
+      setReviewsSummary({});
+    }
+  };
+
+  const loadStationReviews = async (stationId) => {
+    setReviewsLoading(true);
+    try {
+      const res = await fuelReviewsAPI.getByStation(stationId);
+      setStationReviews(res.data.reviews || []);
+      setStationMyReview(res.data.myReview || null);
+      if (res.data.myReview) {
+        setReviewForm({
+          rating: res.data.myReview.rating,
+          comment: res.data.myReview.comment || ''
+        });
+      } else {
+        setReviewForm({ rating: 5, comment: '' });
+      }
+
+      const summary = res.data.summary || {};
+      setReviewsSummary((prev) => ({
+        ...prev,
+        [String(stationId)]: {
+          avgRating: summary.avgRating,
+          reviewsCount: summary.reviewsCount || 0
+        }
+      }));
+    } catch {
+      setStationReviews([]);
+      setStationMyReview(null);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   const getUserLocation = () => {
     setLoading(true);
@@ -125,6 +186,7 @@ export default function FuelMapPage() {
             }))
             .sort((a, b) => a.distance - b.distance);
           setStations(sorted);
+          await loadReviewsSummary(sorted);
         } catch {
           setError('Не удалось загрузить заправки');
         }
@@ -142,6 +204,7 @@ export default function FuelMapPage() {
     if (!userPos) return;
     setRouteLoading(true);
     setSelectedStation(station);
+    loadStationReviews(station.id);
     try {
       const routeData = await fetchRoute(userPos[0], userPos[1], station.lat, station.lon);
       setRoute(routeData);
@@ -154,6 +217,29 @@ export default function FuelMapPage() {
   const clearRoute = () => {
     setRoute(null);
     setSelectedStation(null);
+    setStationReviews([]);
+    setStationMyReview(null);
+  };
+
+  const submitReview = async (event) => {
+    event.preventDefault();
+    if (!selectedStation) {
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setError('');
+    try {
+      await fuelReviewsAPI.saveReview(selectedStation.id, {
+        rating: Number(reviewForm.rating),
+        comment: reviewForm.comment
+      });
+      await loadStationReviews(selectedStation.id);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Не удалось сохранить отзыв');
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -167,39 +253,103 @@ export default function FuelMapPage() {
 
   return (
     <div className="fuel-map-page">
-      <div className="page-header">
+      <div className="page-header reveal">
         <h1 className="page-title">
           <Fuel size={24} /> Заправки рядом
         </h1>
-        <button className="btn btn-secondary" onClick={getUserLocation}>
+        <button className="btn btn-secondary tap" onClick={getUserLocation}>
           <RotateCcw size={16} /> Обновить
         </button>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error reveal reveal-delay-1">{error}</div>}
 
-      <div className="fuel-map-container">
+      <div className="fuel-map-container reveal reveal-delay-1">
         {/* Панель заправок */}
         <div className="fuel-sidebar">
           <h3 className="fuel-sidebar-title">
             Найдено: {stations.length} АЗС
           </h3>
           {route && selectedStation && (
-            <div className="fuel-route-info">
+            <div className="fuel-route-info reveal">
               <div className="fuel-route-details">
                 <strong>{selectedStation.name}</strong>
                 <span>{route.distance} км • ~{route.duration} мин</span>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={clearRoute}>
+              <button className="btn btn-sm btn-secondary tap" onClick={clearRoute}>
                 Сбросить
               </button>
             </div>
           )}
-          <div className="fuel-list">
+
+          {selectedStation && (
+            <div className="card reveal" style={{ marginBottom: '1rem', padding: '1rem' }}>
+              <div className="card-header" style={{ marginBottom: '0.75rem' }}>
+                <h3 className="card-title" style={{ fontSize: '1rem' }}>Отзывы: {selectedStation.name}</h3>
+              </div>
+
+              <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                {reviewsSummary[String(selectedStation.id)]?.avgRating
+                  ? `Средняя оценка: ${reviewsSummary[String(selectedStation.id)].avgRating} / 5 (${reviewsSummary[String(selectedStation.id)].reviewsCount} отзывов)`
+                  : 'Пока нет отзывов'}
+              </div>
+
+              <form onSubmit={submitReview}>
+                <div className="form-group">
+                  <label className="form-label">Ваша оценка</label>
+                  <select
+                    className="form-select"
+                    value={reviewForm.rating}
+                    onChange={(e) => setReviewForm((prev) => ({ ...prev, rating: Number(e.target.value) }))}
+                  >
+                    <option value={5}>5 - Отлично</option>
+                    <option value={4}>4 - Хорошо</option>
+                    <option value={3}>3 - Нормально</option>
+                    <option value={2}>2 - Плохо</option>
+                    <option value={1}>1 - Ужасно</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Комментарий</label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Кратко о качестве обслуживания, очередях, чистоте..."
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
+                  />
+                </div>
+                <button className="btn btn-primary btn-sm tap" type="submit" disabled={reviewSubmitting}>
+                  {reviewSubmitting ? 'Сохраняем...' : stationMyReview ? 'Обновить отзыв' : 'Оставить отзыв'}
+                </button>
+              </form>
+
+              <div style={{ marginTop: '1rem' }}>
+                {reviewsLoading ? (
+                  <div className="loading" style={{ minHeight: 60 }}>Загружаем отзывы...</div>
+                ) : stationReviews.length === 0 ? (
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Еще никто не оставил отзыв.</div>
+                ) : (
+                  stationReviews.slice(0, 5).map((review) => (
+                    <div key={review.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <strong style={{ fontSize: '0.875rem' }}>{review.author_name}</strong>
+                        <span className="badge badge-warning">{review.rating}/5</span>
+                      </div>
+                      {review.comment && <div style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>{review.comment}</div>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="fuel-list stagger">
             {stations.map((s) => (
               <div
                 key={s.id}
-                className={`fuel-card ${selectedStation?.id === s.id ? 'fuel-card-active' : ''}`}
+                className={`fuel-card tap ${selectedStation?.id === s.id ? 'fuel-card-active' : ''}`}
                 onClick={() => buildRoute(s)}
               >
                 <div className="fuel-card-header">
@@ -210,6 +360,11 @@ export default function FuelMapPage() {
                 <div className="fuel-card-distance">
                   <Navigation size={14} />
                   {s.distance.toFixed(1)} км
+                </div>
+                <div style={{ marginTop: '0.35rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {reviewsSummary[String(s.id)]?.avgRating
+                    ? `★ ${reviewsSummary[String(s.id)].avgRating} (${reviewsSummary[String(s.id)].reviewsCount})`
+                    : 'Нет оценок'}
                 </div>
               </div>
             ))}
@@ -249,6 +404,10 @@ export default function FuelMapPage() {
                     {s.brand}
                     <br />
                     {s.distance.toFixed(1)} км
+                    <br />
+                    {reviewsSummary[String(s.id)]?.avgRating
+                      ? `★ ${reviewsSummary[String(s.id)].avgRating} (${reviewsSummary[String(s.id)].reviewsCount} отзывов)`
+                      : 'Нет отзывов'}
                   </Popup>
                 </Marker>
               ))}

@@ -1,6 +1,8 @@
 ﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { Moon, Sun } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,6 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -33,7 +36,12 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">Вход в АвтоПомощник</h1>
+        <div className="auth-toolbar">
+          <button className="auth-theme-toggle" onClick={toggleTheme} type="button" title="Сменить тему">
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
+        <h1 className="auth-title">Вход в CarApp</h1>
         
         {error && <div className="alert alert-error">{error}</div>}
         

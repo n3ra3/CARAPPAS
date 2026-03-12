@@ -47,10 +47,10 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="page-title">Главная</h1>
+      <h1 className="page-title reveal">Главная</h1>
 
       {/* Статистика */}
-      <div className="grid grid-4" style={{ marginBottom: '2rem' }}>
+      <div className="grid grid-4 stagger" style={{ marginBottom: '2rem' }}>
         <div className="stat-card">
           <div className="stat-value">{cars.length}</div>
           <div className="stat-label">Автомобилей в гараже</div>
@@ -77,18 +77,18 @@ export default function DashboardPage() {
 
       {/* Напоминания */}
       {totalReminders > 0 && (
-        <div className="card">
+        <div className="card reveal reveal-delay-1">
           <div className="card-header">
             <h2 className="card-title">
               <AlertTriangle size={20} style={{ marginRight: '0.5rem', color: 'var(--warning)' }} />
               Требует внимания
             </h2>
-            <Link to="/reminders" className="btn btn-secondary btn-sm">
+            <Link to="/reminders" className="btn btn-secondary btn-sm tap">
               Все напоминания
             </Link>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[...reminders.byDate, ...reminders.byMileage].slice(0, 5).map(reminder => (
               <div key={reminder.id} style={{ 
                 display: 'flex', 
@@ -117,13 +117,13 @@ export default function DashboardPage() {
       )}
 
       {/* Автомобили */}
-      <div className="card">
+      <div className="card reveal reveal-delay-2">
         <div className="card-header">
           <h2 className="card-title">
             <Car size={20} style={{ marginRight: '0.5rem' }} />
             Мои автомобили
           </h2>
-          <Link to="/garage" className="btn btn-primary btn-sm">
+          <Link to="/garage" className="btn btn-primary btn-sm tap">
             <Plus size={16} /> Добавить
           </Link>
         </div>
@@ -132,14 +132,14 @@ export default function DashboardPage() {
           <div className="empty-state">
             <Car size={48} className="empty-state-icon" />
             <p>У вас пока нет автомобилей</p>
-            <Link to="/garage" className="btn btn-primary" style={{ marginTop: '1rem' }}>
+            <Link to="/garage" className="btn btn-primary tap" style={{ marginTop: '1rem' }}>
               Добавить автомобиль
             </Link>
           </div>
         ) : (
-          <div className="grid grid-3">
+          <div className="grid grid-3 stagger">
             {cars.map(car => (
-              <Link to={`/car/${car.id}`} key={car.id} className="car-card">
+              <Link to={`/car/${car.id}`} key={car.id} className="car-card tap">
                 <div className="car-card-title">
                   {car.brand_name} {car.model_name}
                 </div>

@@ -84,27 +84,27 @@ export default function GaragePage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header reveal">
         <h1 className="page-title">Гараж</h1>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button className="btn btn-primary tap" onClick={() => setShowModal(true)}>
           <Plus size={20} /> Добавить авто
         </button>
       </div>
 
       {cars.length === 0 ? (
-        <div className="card">
+        <div className="card reveal reveal-delay-1">
           <div className="empty-state">
             <Car size={48} className="empty-state-icon" />
             <p>У вас пока нет автомобилей</p>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: '1rem' }}>
+            <button className="btn btn-primary tap" onClick={() => setShowModal(true)} style={{ marginTop: '1rem' }}>
               Добавить первый автомобиль
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid grid-3">
+        <div className="grid grid-3 stagger">
           {cars.map(car => (
-            <div key={car.id} className="car-card">
+            <div key={car.id} className="car-card tap">
               <Link to={`/car/${car.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="car-card-title">{car.brand_name} {car.model_name}</div>
                 <div className="car-card-info">
@@ -118,7 +118,7 @@ export default function GaragePage() {
                 )}
               </Link>
               <button 
-                className="btn btn-danger btn-sm" 
+                className="btn btn-danger btn-sm tap" 
                 onClick={() => handleDelete(car.id)}
                 style={{ marginTop: '1rem' }}
               >
@@ -130,11 +130,11 @@ export default function GaragePage() {
       )}
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay reveal" onClick={() => setShowModal(false)}>
+          <div className="modal reveal reveal-delay-1" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">Добавить автомобиль</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>
+              <button className="modal-close tap" onClick={() => setShowModal(false)}>
                 <X size={24} />
               </button>
             </div>
@@ -213,10 +213,10 @@ export default function GaragePage() {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                <button type="button" className="btn btn-secondary tap" onClick={() => setShowModal(false)}>
                   Отмена
                 </button>
-                <button type="submit" className="btn btn-primary">Добавить</button>
+                <button type="submit" className="btn btn-primary tap">Добавить</button>
               </div>
             </form>
           </div>

@@ -11,6 +11,8 @@ import ExpensesPage from './pages/ExpensesPage';
 import RemindersPage from './pages/RemindersPage';
 import DocumentsPage from './pages/DocumentsPage';
 import FuelMapPage from './pages/FuelMapPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -30,6 +32,20 @@ function PublicRoute({ children }) {
   }
   
   return user ? <Navigate to="/" /> : children;
+}
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading">Загрузка...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return user.isAdmin ? children : <Navigate to="/" />;
 }
 
 export default function App() {
@@ -53,6 +69,8 @@ export default function App() {
         <Route path="reminders" element={<RemindersPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="fuel-map" element={<FuelMapPage />} />
+        <Route path="admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+        <Route path="admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
       </Route>
     </Routes>
   );

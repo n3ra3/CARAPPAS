@@ -95,4 +95,21 @@ export const documentsAPI = {
   delete: (id) => api.delete(`/documents/${id}`)
 };
 
+// Fuel reviews API
+export const fuelReviewsAPI = {
+  getSummary: (stationIds) => api.get('/fuel-reviews/summary', { params: { stationIds: stationIds.join(',') } }),
+  getByStation: (stationId) => api.get(`/fuel-reviews/${stationId}`),
+  saveReview: (stationId, data) => api.post(`/fuel-reviews/${stationId}`, data)
+};
+
+// Admin API
+export const adminAPI = {
+  getDashboard: () => api.get('/admin/dashboard'),
+  getAnalytics: (period = '30d') => api.get('/admin/analytics', { params: { period } }),
+  getUsers: (params) => api.get('/admin/users', { params }),
+  setUserBlocked: (id, isBlocked) => api.patch(`/admin/users/${id}/block`, { isBlocked }),
+  setUserRole: (id, role) => api.patch(`/admin/users/${id}/role`, { role }),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`)
+};
+
 export default api;
