@@ -1,7 +1,7 @@
 {
-  "name": "autopomoshnik-api",
+  "name": "carapp-api",
   "version": "1.0.0",
-  "description": "REST API для платформы АвтоПомощник",
+  "description": "REST API для платформы CarApp",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

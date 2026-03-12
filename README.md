@@ -1,143 +1,139 @@
-# АвтоПомощник — Цифровая платформа для автолюбителей
+# CarApp
 
-Дипломный проект: веб-приложение + мобильное приложение для учёта автомобилей, сервисного обслуживания и расходов.
+Полноценная платформа для владельцев автомобилей: веб-приложение, мобильный клиент и REST API для учета автопарка, расходов, обслуживания, документов и напоминаний.
+
+Проект выполнен как дипломная работа и ориентирован на практическое использование в ежедневной эксплуатации автомобиля.
+
+## Что внутри
+
+- Веб-клиент для полноценной работы с данными на desktop.
+- Мобильное приложение для быстрого ввода и контроля в дороге.
+- Серверная часть с JWT-авторизацией и централизованной бизнес-логикой.
+- PostgreSQL как основной источник данных.
+
+## Ключевые возможности
+
+- Управление автомобилями в личном гараже.
+- Ведение сервисной истории (ТО, ремонт, замены).
+- Учет расходов и базовая аналитика по категориям.
+- Напоминания по дате и пробегу.
+- Контроль сроков документов.
+- Справочники марок и моделей для удобного ввода.
 
 ## Архитектура
 
-```
-┌─────────────────┐     ┌─────────────────┐
-│  Веб-клиент     │     │ Мобильное       │
-│  (React)        │     │ приложение      │
-│  localhost:5173 │     │ (React Native)  │
-└────────┬────────┘     └────────┬────────┘
-         │                       │
-         └───────────┬───────────┘
-                     │
-              ┌──────▼──────┐
-              │  REST API   │
-              │  (Express)  │
-              │  :3000      │
-              └──────┬──────┘
-                     │
-              ┌──────▼──────┐
-              │ PostgreSQL  │
-              │  :5432      │
-              └─────────────┘
+```text
+Web (React + Vite)            Mobile (React Native + Expo)
+        |                                  |
+        +--------------- REST API ----------+
+                           |
+                    Node.js + Express
+                           |
+                       PostgreSQL
 ```
 
-## Технологии
+## Технологический стек
 
-- **Backend:** Node.js, Express, PostgreSQL
-- **Frontend:** React, Vite, React Router, Recharts
-- **Mobile:** React Native, Expo
-- **Auth:** JWT (JSON Web Tokens)
+- Backend: Node.js, Express, PostgreSQL, JWT, bcryptjs
+- Web: React, Vite, React Router, Recharts, Leaflet
+- Mobile: React Native, Expo, React Navigation
+- API Client: Axios (web + mobile)
+
+## Структура репозитория
+
+```text
+diplom/
+  docs/      Документация и описание системы
+  server/    REST API, миграции и seed-скрипты
+  web/       Веб-клиент (React + Vite)
+  mobile/    Мобильный клиент (React Native + Expo)
+```
 
 ## Быстрый старт
 
-### 1. База данных
+### 1. Требования
+
+- Node.js 18+
+- npm 9+
+- PostgreSQL 14+
+
+### 2. Клонирование
 
 ```bash
-# Создать базу данных PostgreSQL
-createdb autopomoshnik
-
-# Или через psql
-psql -U postgres -c "CREATE DATABASE autopomoshnik;"
+git clone https://github.com/n3ra3/CARAPPAS.git
+cd CARAPPAS
 ```
 
-### 2. Сервер (API)
+### 3. База данных
+
+```bash
+createdb carapp
+```
+
+Или через `psql`:
+
+```bash
+psql -U postgres -c "CREATE DATABASE carapp;"
+```
+
+### 4. Backend
 
 ```bash
 cd server
-
-# Скопировать конфигурацию
-copy .env.example .env
-
-# Отредактировать .env (указать пароль БД)
-```
-
-### 3. Веб-клиент
-
-```bash
-cd web
-
-# Установить зависимости
 npm install
-
-# Запустить в режиме разработки
+copy .env.example .env
+npm run db:migrate
+npm run db:seed
 npm run dev
 ```
 
-Приложение будет доступно: http://localhost:5173
+API по умолчанию: `http://localhost:3000`
 
-### 4. Мобильное приложение (опционально)
+### 5. Web
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Web UI по умолчанию: `http://localhost:5173`
+
+### 6. Mobile (опционально)
 
 ```bash
 cd mobile
-
-# Установить зависимости
 npm install
-
-# Запустить через Expo
-npx expo start
+npm run start
 ```
 
-## Структура проекта
+Для корректной работы mobile-клиента настройте `API_URL` в `mobile/config.js`.
 
-```
-diplom/
-├── docs/                 # Документация проекта
-│   └── README.md         # Описание папки `docs`
-├── mobile/               # Мобильное приложение
-│   └── README.md         # Описание папки `mobile`
-├── server/               # Серверная часть
-│   └── README.md         # Описание папки `server`
-├── web/                  # Веб-приложение
-│   └── README.md         # Описание папки `web`
-└── README.md             # Общая информация о проекте
-```
+## Основные API-модули
 
-## API Endpoints
+- Auth: `/api/auth/*`
+- Cars: `/api/cars/*`
+- Service: `/api/service/*`
+- Expenses: `/api/expenses/*`
+- Reminders: `/api/reminders/*`
+- Documents: `/api/documents/*`
+- Catalog: `/api/catalog/*`
 
-### Авторизация
-- `POST /api/auth/register` — Регистрация
-- `POST /api/auth/login` — Вход
-- `GET /api/auth/me` — Текущий пользователь
+Подробные примеры и параметры см. в отдельных README модулей и документации в папке `docs`.
 
-### Автомобили
-- `GET /api/cars` — Список авто пользователя
-- `POST /api/cars` — Добавить авто
-- `PUT /api/cars/:id` — Обновить авто
-- `DELETE /api/cars/:id` — Удалить авто
+## Сценарий разработки
 
-### Сервис
-- `GET /api/service/types` — Типы работ
-- `GET /api/service/car/:carId` — История обслуживания
-- `POST /api/service` — Добавить запись
+1. Поднять PostgreSQL.
+2. Запустить backend.
+3. Запустить web или mobile клиент.
+4. Тестировать пользовательские сценарии по модулям: garage, service, expenses, reminders, documents.
 
-### Расходы
-- `GET /api/expenses/categories` — Категории
-- `GET /api/expenses/car/:carId` — Расходы авто
-- `GET /api/expenses/car/:carId/stats` — Статистика
-- `POST /api/expenses` — Добавить расход
+## Статус проекта
 
-### Напоминания
-- `GET /api/reminders` — Все напоминания
-- `GET /api/reminders/active` — Активные
-- `POST /api/reminders` — Создать
-- `PUT /api/reminders/:id/complete` — Выполнить
+- Тип: учебный/дипломный проект
+- Год: 2026
+- Язык интерфейса: русский
 
-### Каталог
-- `GET /api/catalog/brands` — Марки авто
-- `GET /api/catalog/brands/:id/models` — Модели марки
+## Лицензия
 
-## Функциональность
-
-1. **Гараж** — управление автомобилями
-2. **Сервисная книжка** — история ТО и ремонтов
-3. **Расходы** — учёт затрат с графиками
-4. **Напоминания** — по дате и пробегу
-5. **Статистика** — расход топлива, расходы по категориям
-
-## Автор
-
-Дипломный проект студента технического университета, 2026 г.
+Лицензия не указана. При необходимости можно добавить файл `LICENSE` с выбранной моделью распространения.
