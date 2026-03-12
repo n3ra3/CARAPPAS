@@ -1,7 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+  override: true
+});
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const carsRoutes = require('./routes/cars');
@@ -10,6 +13,9 @@ const expensesRoutes = require('./routes/expenses');
 const remindersRoutes = require('./routes/reminders');
 const catalogRoutes = require('./routes/catalog');
 const documentsRoutes = require('./routes/documents');
+const adminRoutes = require('./routes/admin');
+const fuelReviewsRoutes = require('./routes/fuelReviews');
+const ensureAdminSchema = require('./database/ensureAdminSchema');
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -29,6 +35,8 @@ app.use('/api/expenses', expensesRoutes);
 app.use('/api/reminders', remindersRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/fuel-reviews', fuelReviewsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -38,8 +46,18 @@ app.get('/api/health', (req, res) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await ensureAdminSchema();
+    app.listen(PORT, () => {
+      console.log(`Сервер запущен на порту ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Ошибка инициализации схемы:', error.message || error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;

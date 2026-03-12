@@ -11,6 +11,9 @@ const migrate = async () => {
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        is_blocked BOOLEAN NOT NULL DEFAULT false,
+        last_login_at TIMESTAMP,
         name VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -146,6 +149,38 @@ const migrate = async () => {
       )
     `);
     console.log('✓ Таблица documents создана');
+
+    // Отзывы и оценки АЗС
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS fuel_station_reviews (
+        id SERIAL PRIMARY KEY,
+        station_osm_id BIGINT NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        comment VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (station_osm_id, user_id)
+      )
+    `);
+    await db.query('CREATE INDEX IF NOT EXISTS idx_fuel_reviews_station ON fuel_station_reviews(station_osm_id)');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_fuel_reviews_user ON fuel_station_reviews(user_id)');
+    console.log('✓ Таблица fuel_station_reviews создана');
+
+    // Активность пользователей для аналитики
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_activity (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        activity_date DATE NOT NULL,
+        source VARCHAR(30) DEFAULT 'api',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, activity_date)
+      )
+    `);
+    await db.query('CREATE INDEX IF NOT EXISTS idx_user_activity_date ON user_activity(activity_date)');
+    await db.query('CREATE INDEX IF NOT EXISTS idx_user_activity_user_date ON user_activity(user_id, activity_date)');
+    console.log('✓ Таблица user_activity создана');
 
     console.log('\n✓ Миграция успешно завершена!');
     process.exit(0);

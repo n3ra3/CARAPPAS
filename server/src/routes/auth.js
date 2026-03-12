@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const db = require('../config/database');
 const auth = require('../middleware/auth');
+const { isAdminEmail } = require('../middleware/admin');
 
 const router = express.Router();
 
@@ -43,20 +44,28 @@ router.post('/register', registerValidation, async (req, res, next) => {
 
     // Хеширование пароля
     const passwordHash = await bcrypt.hash(password, 10);
+    const normalizedEmail = email.toLowerCase();
+    const role = isAdminEmail(normalizedEmail) ? 'admin' : 'user';
 
     // Создание пользователя
     const result = await db.query(
-      `INSERT INTO users (email, password_hash, name) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, email, name, created_at`,
-      [email.toLowerCase(), passwordHash, name || null]
+      `INSERT INTO users (email, password_hash, name, role) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, email, name, role, is_blocked, created_at`,
+      [normalizedEmail, passwordHash, name || null, role]
     );
 
     const user = result.rows[0];
+    const isAdmin = user.role === 'admin' || isAdminEmail(user.email);
 
     // Генерация токена
     const token = jwt.sign(
-      { userId: user.id },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        isAdmin
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -66,7 +75,10 @@ router.post('/register', registerValidation, async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role: user.role,
+        isBlocked: user.is_blocked,
+        isAdmin
       },
       token
     });
@@ -87,7 +99,7 @@ router.post('/login', loginValidation, async (req, res, next) => {
 
     // Поиск пользователя
     const result = await db.query(
-      'SELECT id, email, password_hash, name FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, name, role, is_blocked FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
 
@@ -98,6 +110,11 @@ router.post('/login', loginValidation, async (req, res, next) => {
     }
 
     const user = result.rows[0];
+    const isAdmin = user.role === 'admin' || isAdminEmail(user.email);
+
+    if (user.is_blocked) {
+      return res.status(403).json({ error: 'Ваш аккаунт заблокирован администратором' });
+    }
 
     // Проверка пароля
     const isValid = await bcrypt.compare(password, user.password_hash);
@@ -108,8 +125,23 @@ router.post('/login', loginValidation, async (req, res, next) => {
     }
 
     // Генерация токена
+    await Promise.all([
+      db.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]),
+      db.query(
+        `INSERT INTO user_activity (user_id, activity_date, source)
+         VALUES ($1, CURRENT_DATE, 'login')
+         ON CONFLICT (user_id, activity_date) DO NOTHING`,
+        [user.id]
+      )
+    ]);
+
     const token = jwt.sign(
-      { userId: user.id },
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        isAdmin
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -118,7 +150,10 @@ router.post('/login', loginValidation, async (req, res, next) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role: user.role,
+        isBlocked: user.is_blocked,
+        isAdmin
       },
       token
     });
@@ -131,7 +166,7 @@ router.post('/login', loginValidation, async (req, res, next) => {
 router.get('/me', auth, async (req, res, next) => {
   try {
     const result = await db.query(
-      'SELECT id, email, name, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, role, is_blocked, created_at, last_login_at FROM users WHERE id = $1',
       [req.userId]
     );
 
@@ -139,7 +174,14 @@ router.get('/me', auth, async (req, res, next) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
-    res.json({ user: result.rows[0] });
+    const user = result.rows[0];
+    res.json({
+      user: {
+        ...user,
+        isBlocked: user.is_blocked,
+        isAdmin: user.role === 'admin' || isAdminEmail(user.email)
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -153,11 +195,18 @@ router.put('/profile', auth, async (req, res, next) => {
     const result = await db.query(
       `UPDATE users SET name = $1, updated_at = CURRENT_TIMESTAMP 
        WHERE id = $2 
-       RETURNING id, email, name`,
+       RETURNING id, email, name, role, is_blocked`,
       [name, req.userId]
     );
 
-    res.json({ user: result.rows[0] });
+    const user = result.rows[0];
+    res.json({
+      user: {
+        ...user,
+        isBlocked: user.is_blocked,
+        isAdmin: user.role === 'admin' || isAdminEmail(user.email)
+      }
+    });
   } catch (error) {
     next(error);
   }
