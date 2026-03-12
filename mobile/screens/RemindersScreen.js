@@ -4,8 +4,12 @@ import {
 } from 'react-native';
 import api from '../services/api';
 import NotificationService from '../services/NotificationService';
+import { useTheme } from '../contexts/ThemeContext';
+import FadeInView from '../components/FadeInView';
+import PressableScale from '../components/PressableScale';
 
 export default function RemindersScreen({ navigation }) {
+  const { theme } = useTheme();
   const [reminders, setReminders] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,69 +49,79 @@ export default function RemindersScreen({ navigation }) {
   const activeReminders = reminders.filter(r => !r.is_completed);
   const completedReminders = reminders.filter(r => r.is_completed);
 
-  const renderReminder = ({ item }) => (
-    <View style={[styles.card, item.is_completed && styles.completed]}>
-      <View style={styles.cardContent}>
-        <Text style={[styles.cardTitle, item.is_completed && styles.strikethrough]}>
-          {item.title}
-        </Text>
-        <Text style={styles.cardSub}>
-          {item.brand_name} {item.model_name}
-        </Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {item.reminder_type === 'date'
-              ? new Date(item.due_date).toLocaleDateString('ru')
-              : `${item.due_mileage?.toLocaleString()} км`
-            }
+  const renderReminder = ({ item, index }) => (
+    <FadeInView delay={120 + Math.min(index, 8) * 45}>
+      <View style={[
+        styles.card,
+        { backgroundColor: theme.surface, borderLeftColor: theme.warning },
+        item.is_completed && styles.completed,
+        item.is_completed && { borderLeftColor: theme.tabInactive }
+      ]}>
+        <View style={styles.cardContent}>
+          <Text style={[styles.cardTitle, { color: theme.text }, item.is_completed && styles.strikethrough]}>
+            {item.title}
           </Text>
+          <Text style={[styles.cardSub, { color: theme.textSecondary }]}> 
+            {item.brand_name} {item.model_name}
+          </Text>
+          <View style={[styles.badge, { backgroundColor: theme.softWarning }]}> 
+            <Text style={[styles.badgeText, { color: theme.warning }]}> 
+              {item.reminder_type === 'date'
+                ? new Date(item.due_date).toLocaleDateString('ru')
+                : `${item.due_mileage?.toLocaleString()} км`
+              }
+            </Text>
+          </View>
         </View>
+        {!item.is_completed && (
+          <PressableScale 
+            style={[styles.completeBtn, { backgroundColor: theme.primary }]}
+            onPress={() => handleComplete(item.id)}
+            activeScale={0.92}
+          >
+            <Text style={styles.completeBtnText}>✓</Text>
+          </PressableScale>
+        )}
       </View>
-      {!item.is_completed && (
-        <TouchableOpacity 
-          style={styles.completeBtn}
-          onPress={() => handleComplete(item.id)}
-        >
-          <Text style={styles.completeBtnText}>✓</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+    </FadeInView>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Напоминания</Text>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.navigate('AddReminder')}
-          >
-            <Text style={styles.addBtnText}>+ Добавить</Text>
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      <FadeInView delay={20}>
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}> 
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, { color: theme.text }]}>Напоминания</Text>
+            <PressableScale
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => navigation.navigate('AddReminder')}
+            >
+              <Text style={styles.addBtnText}>+ Добавить</Text>
+            </PressableScale>
+          </View>
         </View>
-      </View>
+      </FadeInView>
 
       <FlatList
         data={[...activeReminders, ...completedReminders]}
         keyExtractor={item => item.id.toString()}
         renderItem={renderReminder}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>Нет напоминаний</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Нет напоминаний</Text>
+            <PressableScale
+              style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
               onPress={() => navigation.navigate('AddReminder')}
             >
               <Text style={styles.emptyBtnText}>Создать напоминание</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         }
         ListHeaderComponent={
           activeReminders.length > 0 ? (
-            <Text style={styles.sectionHeader}>
+            <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>
               Активные ({activeReminders.length})
             </Text>
           ) : null

@@ -4,9 +4,13 @@ import {
 } from 'react-native';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import FadeInView from '../components/FadeInView';
+import PressableScale from '../components/PressableScale';
 
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
   const [cars, setCars] = useState([]);
   const [reminders, setReminders] = useState({ byDate: [], byMileage: [] });
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -52,74 +56,88 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <View style={styles.header}>
+      <FadeInView delay={20}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <Text style={styles.greeting}>Привет, {user?.name || 'Пользователь'}!</Text>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.logout}>Выйти</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={toggleTheme} style={styles.headerIconBtn}>
+            <Text style={styles.logout}>{isDark ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.logout}>Выйти</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+      </FadeInView>
 
       {/* Статистика */}
+      <FadeInView delay={80}>
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <Text style={styles.statValue}>{cars.length}</Text>
-          <Text style={styles.statLabel}>Авто</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Авто</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.statValue, totalReminders > 0 && styles.warning]}>
             {totalReminders}
           </Text>
-          <Text style={styles.statLabel}>Напоминаний</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Напоминаний</Text>
         </View>
       </View>
+      </FadeInView>
 
+      <FadeInView delay={130}>
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.statValue, { color: '#ef4444' }]}>
             {totalExpenses.toLocaleString()} MDL
           </Text>
-          <Text style={styles.statLabel}>Всего расходов</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Всего расходов</Text>
         </View>
       </View>
+      </FadeInView>
 
       {/* Напоминания */}
       {totalReminders > 0 && (
+        <FadeInView delay={180}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Требует внимания</Text>
           {[...reminders.byDate, ...reminders.byMileage].slice(0, 3).map(r => (
-            <View key={r.id} style={styles.reminderCard}>
-              <Text style={styles.reminderTitle}>{r.title}</Text>
-              <Text style={styles.reminderSub}>
+            <View key={r.id} style={[styles.reminderCard, { backgroundColor: theme.surface, borderLeftColor: theme.warning }]}>
+              <Text style={[styles.reminderTitle, { color: theme.text }]}>{r.title}</Text>
+              <Text style={[styles.reminderSub, { color: theme.textSecondary }]}>
                 {r.brand_name} {r.model_name}
               </Text>
             </View>
           ))}
         </View>
+        </FadeInView>
       )}
 
       {/* Автомобили */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Мои автомобили</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Мои автомобили</Text>
         {cars.length === 0 ? (
-          <Text style={styles.emptyText}>Нет автомобилей</Text>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Нет автомобилей</Text>
         ) : (
-          cars.map(car => (
-            <TouchableOpacity 
-              key={car.id} 
-              style={styles.carCard}
-              onPress={() => navigation.navigate('CarDetail', { id: car.id })}
-            >
-              <Text style={styles.carTitle}>
-                {car.brand_name} {car.model_name}
-              </Text>
-              <Text style={styles.carInfo}>
-                {car.year && `${car.year} г. • `}
-                {(car.mileage || 0).toLocaleString()} км
-              </Text>
-            </TouchableOpacity>
+          cars.map((car, index) => (
+            <FadeInView key={car.id} delay={220 + Math.min(index, 6) * 55}>
+              <PressableScale 
+                style={[styles.carCard, { backgroundColor: theme.surface }]}
+                onPress={() => navigation.navigate('CarDetail', { id: car.id })}
+              >
+                <Text style={[styles.carTitle, { color: theme.text }]}> 
+                  {car.brand_name} {car.model_name}
+                </Text>
+                <Text style={[styles.carInfo, { color: theme.textSecondary }]}> 
+                  {car.year && `${car.year} г. • `}
+                  {(car.mileage || 0).toLocaleString()} км
+                </Text>
+              </PressableScale>
+            </FadeInView>
           ))
         )}
       </View>
@@ -139,6 +157,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     backgroundColor: '#2563eb',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBtn: {
+    paddingHorizontal: 4,
   },
   greeting: {
     fontSize: 20,

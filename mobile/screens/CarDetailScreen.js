@@ -3,8 +3,11 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert
 } from 'react-native';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
+import FadeInView from '../components/FadeInView';
 
 export default function CarDetailScreen({ route, navigation }) {
+  const { theme } = useTheme();
   const { id } = route.params;
   const [car, setCar] = useState(null);
   const [stats, setStats] = useState(null);
@@ -52,8 +55,8 @@ export default function CarDetailScreen({ route, navigation }) {
   if (!car) return null;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>← Назад</Text>
         </TouchableOpacity>
@@ -65,25 +68,25 @@ export default function CarDetailScreen({ route, navigation }) {
       </View>
 
       {/* Пробег */}
-      <TouchableOpacity style={styles.mileageCard} onPress={() => setMileageModal(true)}>
-        <Text style={styles.mileageLabel}>Пробег</Text>
-        <Text style={styles.mileageValue}>
+      <TouchableOpacity style={[styles.mileageCard, { backgroundColor: theme.surface }]} onPress={() => setMileageModal(true)}>
+        <Text style={[styles.mileageLabel, { color: theme.textSecondary }]}>Пробег</Text>
+        <Text style={[styles.mileageValue, { color: theme.text }]}>
           {(car.mileage || 0).toLocaleString()} км
         </Text>
-        <Text style={styles.mileageHint}>Нажмите для обновления</Text>
+        <Text style={[styles.mileageHint, { color: theme.textSecondary }]}>Нажмите для обновления</Text>
       </TouchableOpacity>
 
       {/* Кнопки действий */}
       <View style={styles.actionsRow}>
         <TouchableOpacity
-          style={styles.actionBtn}
+          style={[styles.actionBtn, { backgroundColor: theme.primary }]}
           onPress={() => navigation.navigate('AddExpense', { carId: id, carName })}
         >
           <Text style={styles.actionIcon}>MDL</Text>
           <Text style={styles.actionText}>Расход</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionBtn}
+          style={[styles.actionBtn, { backgroundColor: theme.primary }]}
           onPress={() => navigation.navigate('AddService', { carId: id, carName })}
         >
           <Text style={styles.actionIcon}>🔧</Text>
@@ -93,44 +96,44 @@ export default function CarDetailScreen({ route, navigation }) {
 
       {/* Статистика */}
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.statValue, { color: theme.primary }]}>
             {stats?.byCategory
               ? Math.round(stats.byCategory.reduce((s, c) => s + parseFloat(c.total), 0)).toLocaleString()
               : '0'}
           </Text>
-          <Text style={styles.statLabel}>MDL всего</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>MDL всего</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.statValue, { color: theme.primary }]}>
             {stats?.byMonth?.length > 0
               ? Math.round(stats.byMonth.reduce((s, m) => s + parseFloat(m.total), 0) / stats.byMonth.length).toLocaleString()
               : '0'}
           </Text>
-          <Text style={styles.statLabel}>MDL/мес</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>MDL/мес</Text>
         </View>
       </View>
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.statValue, { color: theme.primary }]}>
             {stats?.fuel?.avgConsumption || '—'}
           </Text>
-          <Text style={styles.statLabel}>л/100км</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>л/100км</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{service.length}</Text>
-          <Text style={styles.statLabel}>Записей ТО</Text>
+        <View style={[styles.statCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.statValue, { color: theme.primary }]}>{service.length}</Text>
+          <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Записей ТО</Text>
         </View>
       </View>
 
       {/* Расходы по категориям */}
       {stats?.byCategory?.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Расходы</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Расходы</Text>
           {stats.byCategory.map(cat => (
-            <View key={cat.name} style={styles.expenseRow}>
-              <Text style={styles.expenseName}>{cat.name}</Text>
-              <Text style={styles.expenseValue}>
+            <View key={cat.name} style={[styles.expenseRow, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.expenseName, { color: theme.text }]}>{cat.name}</Text>
+              <Text style={[styles.expenseValue, { color: theme.text }]}>
                 {parseFloat(cat.total).toLocaleString()} MDL
               </Text>
             </View>
@@ -141,16 +144,16 @@ export default function CarDetailScreen({ route, navigation }) {
       {/* История ТО */}
       {service.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Последние работы</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Последние работы</Text>
           {service.map(rec => (
-            <View key={rec.id} style={styles.serviceCard}>
-              <Text style={styles.serviceType}>{rec.service_type_name}</Text>
-              <Text style={styles.serviceDate}>
+            <View key={rec.id} style={[styles.serviceCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.serviceType, { color: theme.text }]}>{rec.service_type_name}</Text>
+              <Text style={[styles.serviceDate, { color: theme.textSecondary }]}>
                 {new Date(rec.date).toLocaleDateString('ru')}
                 {rec.mileage && ` • ${rec.mileage.toLocaleString()} км`}
               </Text>
               {rec.cost && (
-                <Text style={styles.serviceCost}>
+                <Text style={[styles.serviceCost, { color: theme.primary }]}>
                   {parseFloat(rec.cost).toLocaleString()} MDL
                 </Text>
               )}
@@ -162,27 +165,30 @@ export default function CarDetailScreen({ route, navigation }) {
       {/* Модальное окно пробега */}
       <Modal visible={mileageModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Обновить пробег</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={newMileage}
-              onChangeText={setNewMileage}
-              keyboardType="numeric"
-              placeholder="Введите пробег"
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalBtnCancel}
-                onPress={() => setMileageModal(false)}
-              >
-                <Text style={styles.modalBtnCancelText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnSave} onPress={updateMileage}>
-                <Text style={styles.modalBtnSaveText}>Сохранить</Text>
-              </TouchableOpacity>
+          <FadeInView delay={10} duration={220} offsetY={16}>
+            <View style={[styles.modalContent, { backgroundColor: theme.surface }]}> 
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Обновить пробег</Text>
+              <TextInput
+                style={[styles.modalInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }]}
+                placeholderTextColor={theme.textSecondary}
+                value={newMileage}
+                onChangeText={setNewMileage}
+                keyboardType="numeric"
+                placeholder="Введите пробег"
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalBtnCancel, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                  onPress={() => setMileageModal(false)}
+                >
+                  <Text style={[styles.modalBtnCancelText, { color: theme.textSecondary }]}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalBtnSave, { backgroundColor: theme.primary }]} onPress={updateMileage}>
+                  <Text style={styles.modalBtnSaveText}>Сохранить</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </FadeInView>
         </View>
       </Modal>
     </ScrollView>
@@ -192,12 +198,10 @@ export default function CarDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
     paddingTop: 60,
-    backgroundColor: '#2563eb',
   },
   back: {
     color: '#fff',
@@ -215,23 +219,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   mileageCard: {
-    backgroundColor: '#fff',
     margin: 16,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
   },
   mileageLabel: {
-    color: '#64748b',
     marginBottom: 4,
   },
   mileageValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1e293b',
   },
   mileageHint: {
-    color: '#94a3b8',
     fontSize: 12,
     marginTop: 8,
   },
@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#2563eb',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -263,7 +262,6 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -271,10 +269,8 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#2563eb',
   },
   statLabel: {
-    color: '#64748b',
     marginTop: 4,
     fontSize: 13,
   },
@@ -285,40 +281,33 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#1e293b',
   },
   expenseRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
     padding: 12,
     marginBottom: 8,
     borderRadius: 8,
   },
   expenseName: {
-    color: '#1e293b',
+    fontSize: 14,
   },
   expenseValue: {
     fontWeight: '600',
-    color: '#1e293b',
   },
   serviceCard: {
-    backgroundColor: '#fff',
     padding: 12,
     marginBottom: 8,
     borderRadius: 8,
   },
   serviceType: {
     fontWeight: '600',
-    color: '#1e293b',
   },
   serviceDate: {
-    color: '#64748b',
     fontSize: 13,
     marginTop: 4,
   },
   serviceCost: {
-    color: '#2563eb',
     fontWeight: '600',
     marginTop: 4,
   },
@@ -329,7 +318,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     width: '80%',
@@ -342,7 +330,6 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     borderRadius: 8,
     padding: 16,
     fontSize: 18,
@@ -358,17 +345,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
     alignItems: 'center',
   },
   modalBtnCancelText: {
-    color: '#64748b',
+    fontWeight: '500',
   },
   modalBtnSave: {
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: '#2563eb',
     alignItems: 'center',
   },
   modalBtnSaveText: {

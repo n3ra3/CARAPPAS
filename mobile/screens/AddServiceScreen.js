@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import ModalPicker from '../components/ModalPicker';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddServiceScreen({ route, navigation }) {
+  const { theme } = useTheme();
   const { carId, carName } = route.params;
   const [serviceTypes, setServiceTypes] = useState([]);
   const [serviceTypeId, setServiceTypeId] = useState(null);
@@ -60,17 +62,17 @@ export default function AddServiceScreen({ route, navigation }) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← Отмена</Text>
+          <Text style={[styles.back, { color: theme.primary }]}>← Отмена</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Запись ТО</Text>
-        <Text style={styles.subtitle}>{carName}</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Запись ТО</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{carName}</Text>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Тип работ *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Тип работ *</Text>
         <ModalPicker
           items={serviceTypes.map(t => ({ label: t.name, value: t.id }))}
           selectedValue={serviceTypeId}
@@ -78,35 +80,39 @@ export default function AddServiceScreen({ route, navigation }) {
           placeholder="Выберите тип работ"
         />
 
-        <Text style={styles.label}>Дата</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Дата</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="2024-01-15"
           value={date}
           onChangeText={setDate}
         />
 
-        <Text style={styles.label}>Пробег (км)</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Пробег (км)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="50000"
           value={mileage}
           onChangeText={setMileage}
           keyboardType="numeric"
         />
 
-        <Text style={styles.label}>Стоимость (MDL)</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Стоимость (MDL)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="5000"
           value={cost}
           onChangeText={setCost}
           keyboardType="decimal-pad"
         />
 
-        <Text style={styles.label}>Заметки</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Заметки</Text>
         <TextInput
-          style={[styles.input, styles.textarea]}
+          style={[styles.input, styles.textarea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="Что было сделано, какие запчасти..."
           value={notes}
           onChangeText={setNotes}
@@ -115,7 +121,7 @@ export default function AddServiceScreen({ route, navigation }) {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.primary }, loading && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -132,7 +138,6 @@ export default function AddServiceScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
@@ -142,16 +147,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   back: {
-    color: '#2563eb',
     marginBottom: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
   },
   subtitle: {
-    color: '#64748b',
     marginTop: 4,
   },
   form: {
@@ -160,7 +162,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -187,7 +188,6 @@ const styles = StyleSheet.create({
     height: 50,
   },
   button: {
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

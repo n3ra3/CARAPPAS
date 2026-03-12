@@ -9,6 +9,7 @@ import * as Notifications from 'expo-notifications';
 import api from './services/api';
 import NotificationService from './services/NotificationService';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -28,15 +29,17 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.tabInactive,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e2e8f0',
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 4,
           height: Platform.OS === 'ios' ? 84 : 64,
@@ -77,6 +80,15 @@ function MainTabs() {
 }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
+  const { theme, isDark, ready } = useTheme();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expoPushToken, setExpoPushToken] = useState('');
@@ -151,11 +163,23 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) return null;
+  if (loading || !ready) return null;
+
+  const navigationTheme = {
+    dark: isDark,
+    colors: {
+      primary: theme.primary,
+      background: theme.background,
+      card: theme.surface,
+      text: theme.text,
+      border: theme.border,
+      notification: theme.danger,
+    },
+  };
 
   return (
     <AuthProvider value={{ user, login, register, logout, expoPushToken }}>
-      <NavigationContainer>
+      <NavigationContainer theme={navigationTheme}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
             <>
@@ -174,7 +198,7 @@ export default function App() {
             </>
           )}
         </Stack.Navigator>
-        <StatusBar style="auto" />
+        <StatusBar style={theme.statusBar} />
       </NavigationContainer>
     </AuthProvider>
   );

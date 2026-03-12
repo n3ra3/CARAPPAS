@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import ModalPicker from '../components/ModalPicker';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddExpenseScreen({ route, navigation }) {
+  const { theme } = useTheme();
   const { carId, carName } = route.params;
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState(null);
@@ -75,17 +77,17 @@ export default function AddExpenseScreen({ route, navigation }) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← Отмена</Text>
+          <Text style={[styles.back, { color: theme.primary }]}>← Отмена</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Добавить расход</Text>
-        <Text style={styles.subtitle}>{carName}</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Добавить расход</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{carName}</Text>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Категория *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Категория *</Text>
         <ModalPicker
           items={categories.map(c => ({ label: c.name, value: c.id }))}
           selectedValue={categoryId}
@@ -97,9 +99,10 @@ export default function AddExpenseScreen({ route, navigation }) {
           <>
             <View style={styles.row}>
               <View style={styles.halfInput}>
-                <Text style={styles.label}>Литры</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Литры</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                  placeholderTextColor={theme.textSecondary}
                   placeholder="40"
                   value={liters}
                   onChangeText={setLiters}
@@ -107,9 +110,10 @@ export default function AddExpenseScreen({ route, navigation }) {
                 />
               </View>
               <View style={styles.halfInput}>
-                <Text style={styles.label}>Цена за литр</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Цена за литр</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+                  placeholderTextColor={theme.textSecondary}
                   placeholder="55.50"
                   value={pricePerLiter}
                   onChangeText={setPricePerLiter}
@@ -120,35 +124,39 @@ export default function AddExpenseScreen({ route, navigation }) {
           </>
         )}
 
-        <Text style={styles.label}>Сумма (MDL) *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Сумма (MDL) *</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="1500"
           value={amount}
           onChangeText={setAmount}
           keyboardType="decimal-pad"
         />
 
-        <Text style={styles.label}>Дата</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Дата</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="2024-01-15"
           value={date}
           onChangeText={setDate}
         />
 
-        <Text style={styles.label}>Пробег (км)</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Пробег (км)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="50000"
           value={mileage}
           onChangeText={setMileage}
           keyboardType="numeric"
         />
 
-        <Text style={styles.label}>Описание</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Описание</Text>
         <TextInput
-          style={[styles.input, styles.textarea]}
+          style={[styles.input, styles.textarea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="Комментарий..."
           value={description}
           onChangeText={setDescription}
@@ -157,7 +165,7 @@ export default function AddExpenseScreen({ route, navigation }) {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.primary }, loading && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -174,7 +182,6 @@ export default function AddExpenseScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
@@ -184,16 +191,13 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   back: {
-    color: '#2563eb',
     marginBottom: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
   },
   subtitle: {
-    color: '#64748b',
     marginTop: 4,
   },
   form: {
@@ -202,7 +206,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -236,7 +239,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

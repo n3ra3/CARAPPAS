@@ -4,12 +4,14 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -30,7 +32,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -38,12 +40,21 @@ export default function LoginScreen({ navigation }) {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>АвтоПомощник</Text>
-          <Text style={styles.subtitle}>Вход в аккаунт</Text>
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, { color: theme.primary }]}>CarApp</Text>
+            <TouchableOpacity
+              style={[styles.themeBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={toggleTheme}
+            >
+              <Text style={[styles.themeBtnText, { color: theme.text }]}>{isDark ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Вход в аккаунт</Text>
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
             placeholder="Email"
+            placeholderTextColor={theme.textSecondary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -51,15 +62,16 @@ export default function LoginScreen({ navigation }) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
             placeholder="Пароль"
+            placeholderTextColor={theme.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
           <TouchableOpacity 
-            style={styles.button} 
+            style={[styles.button, { backgroundColor: theme.primary }]} 
             onPress={handleLogin}
             disabled={loading}
           >
@@ -69,7 +81,7 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.link}>Нет аккаунта? Зарегистрироваться</Text>
+            <Text style={[styles.link, { color: theme.primary }]}>Нет аккаунта? Зарегистрироваться</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -90,13 +102,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2563eb',
-    textAlign: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  themeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeBtnText: {
+    fontSize: 18,
   },
   subtitle: {
     fontSize: 18,
-    color: '#64748b',
     textAlign: 'center',
     marginBottom: 32,
   },

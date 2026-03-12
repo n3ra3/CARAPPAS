@@ -3,9 +3,11 @@ import {
   View, Text, TouchableOpacity, Modal, FlatList, StyleSheet,
   Platform,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function ModalPicker({ items, selectedValue, onValueChange, placeholder = 'Выберите...', enabled = true }) {
   const [visible, setVisible] = useState(false);
+  const { theme } = useTheme();
 
   const selectedItem = items.find(i => i.value === selectedValue);
   const displayText = selectedItem ? selectedItem.label : placeholder;
@@ -24,15 +26,26 @@ export default function ModalPicker({ items, selectedValue, onValueChange, place
   return (
     <>
       <TouchableOpacity
-        style={[styles.selector, !enabled && styles.selectorDisabled]}
+        style={[
+          styles.selector,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          },
+          !enabled && styles.selectorDisabled
+        ]}
         onPress={openPicker}
         activeOpacity={enabled ? 0.7 : 1}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={[styles.selectorText, !selectedItem && styles.placeholderText]}>
+        <Text style={[
+          styles.selectorText,
+          { color: selectedItem ? theme.text : theme.textSecondary },
+          !selectedItem && styles.placeholderText
+        ]}>
           {displayText}
         </Text>
-        <Text style={styles.arrow}>▼</Text>
+        <Text style={[styles.arrow, { color: theme.textSecondary }]}>▼</Text>
       </TouchableOpacity>
 
       <Modal
@@ -50,17 +63,17 @@ export default function ModalPicker({ items, selectedValue, onValueChange, place
             onPress={() => setVisible(false)}
           />
           {/* Контент снизу */}
-          <View style={styles.modalContainer}>
-            <View style={styles.handleBar} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{placeholder}</Text>
+          <View style={[styles.modalContainer, { backgroundColor: theme.surface }] }>
+            <View style={[styles.handleBar, { backgroundColor: theme.border }]} />
+            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>{placeholder}</Text>
               <TouchableOpacity onPress={() => setVisible(false)}>
-                <Text style={styles.closeBtn}>Закрыть</Text>
+                <Text style={[styles.closeBtn, { color: theme.primary }]}>Закрыть</Text>
               </TouchableOpacity>
             </View>
             {items.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Нет доступных вариантов</Text>
+                <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Нет доступных вариантов</Text>
               </View>
             ) : (
               <FlatList
@@ -73,18 +86,21 @@ export default function ModalPicker({ items, selectedValue, onValueChange, place
                   <TouchableOpacity
                     style={[
                       styles.option,
+                      { borderBottomColor: theme.border },
                       item.value === selectedValue && styles.optionActive,
+                      item.value === selectedValue && { backgroundColor: theme.softPrimary },
                     ]}
                     onPress={() => handleSelect(item.value)}
                   >
                     <Text style={[
                       styles.optionText,
+                      { color: item.value === selectedValue ? theme.primary : theme.text },
                       item.value === selectedValue && styles.optionTextActive,
                     ]}>
                       {item.label}
                     </Text>
                     {item.value === selectedValue && (
-                      <Text style={styles.checkmark}>✓</Text>
+                      <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
                     )}
                   </TouchableOpacity>
                 )}
@@ -113,15 +129,13 @@ const styles = StyleSheet.create({
   },
   selectorText: {
     fontSize: 16,
-    color: '#1e293b',
     flex: 1,
   },
   placeholderText: {
-    color: '#94a3b8',
+    opacity: 0.9,
   },
   arrow: {
     fontSize: 12,
-    color: '#94a3b8',
     marginLeft: 8,
   },
   overlay: {
@@ -132,7 +146,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '60%',
@@ -142,7 +155,6 @@ const styles = StyleSheet.create({
   handleBar: {
     width: 40,
     height: 4,
-    backgroundColor: '#d1d5db',
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 8,
@@ -157,16 +169,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1e293b',
   },
   closeBtn: {
     fontSize: 16,
-    color: '#2563eb',
     fontWeight: '500',
   },
   option: {
@@ -175,22 +184,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   optionActive: {
-    backgroundColor: '#eff6ff',
+    opacity: 1,
   },
   optionText: {
     fontSize: 16,
-    color: '#1e293b',
   },
   optionTextActive: {
-    color: '#2563eb',
     fontWeight: '600',
   },
   checkmark: {
     fontSize: 18,
-    color: '#2563eb',
     fontWeight: '700',
   },
   emptyContainer: {
@@ -199,6 +204,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#94a3b8',
   },
 });

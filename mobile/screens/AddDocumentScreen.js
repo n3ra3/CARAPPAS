@@ -6,6 +6,7 @@ import {
 import ModalPicker from '../components/ModalPicker';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DOC_TYPES = [
   { id: 'license', name: 'Водительское удостоверение', icon: '🪪' },
@@ -19,6 +20,7 @@ const DOC_TYPES = [
 ];
 
 export default function AddDocumentScreen({ navigation, route }) {
+  const { theme } = useTheme();
   const editDocument = route.params?.document;
   const isEdit = !!editDocument;
 
@@ -133,29 +135,38 @@ export default function AddDocumentScreen({ navigation, route }) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← Отмена</Text>
+          <Text style={[styles.back, { color: theme.primary }]}>← Отмена</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEdit ? 'Редактирование' : 'Новый документ'}</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{isEdit ? 'Редактирование' : 'Новый документ'}</Text>
       </View>
 
       <View style={styles.form}>
         {/* Тип документа */}
-        <Text style={styles.label}>Тип документа *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Тип документа *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeList}>
           {DOC_TYPES.map(type => (
             <TouchableOpacity
               key={type.id}
-              style={[styles.typeItem, docType === type.id && styles.typeItemActive]}
+              style={[
+                styles.typeItem,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+                docType === type.id && styles.typeItemActive,
+                docType === type.id && { backgroundColor: theme.primary, borderColor: theme.primary }
+              ]}
               onPress={() => {
                 setDocType(type.id);
                 setTitle(type.name);
               }}
             >
               <Text style={styles.typeIcon}>{type.icon}</Text>
-              <Text style={[styles.typeText, docType === type.id && styles.typeTextActive]}>
+              <Text style={[
+                styles.typeText,
+                { color: docType === type.id ? '#fff' : theme.textSecondary },
+                docType === type.id && styles.typeTextActive
+              ]}>
                 {type.name}
               </Text>
             </TouchableOpacity>
@@ -163,25 +174,27 @@ export default function AddDocumentScreen({ navigation, route }) {
         </ScrollView>
 
         {/* Название */}
-        <Text style={styles.label}>Название *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Название *</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="Название документа"
           value={title}
           onChangeText={setTitle}
         />
 
         {/* Номер документа */}
-        <Text style={styles.label}>Номер документа</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Номер документа</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="1234 567890"
           value={docNumber}
           onChangeText={setDocNumber}
         />
 
         {/* Привязка к авто */}
-        <Text style={styles.label}>Привязать к автомобилю</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Привязать к автомобилю</Text>
         <ModalPicker
           items={[
             { label: 'Не привязывать', value: null },
@@ -195,18 +208,20 @@ export default function AddDocumentScreen({ navigation, route }) {
         {/* Даты */}
         <View style={styles.row}>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Дата выдачи</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Дата выдачи</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+              placeholderTextColor={theme.textSecondary}
               placeholder="2024-01-15"
               value={issueDate}
               onChangeText={setIssueDate}
             />
           </View>
           <View style={styles.halfInput}>
-            <Text style={styles.label}>Срок действия</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Срок действия</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+              placeholderTextColor={theme.textSecondary}
               placeholder="2025-01-15"
               value={expiryDate}
               onChangeText={setExpiryDate}
@@ -215,15 +230,24 @@ export default function AddDocumentScreen({ navigation, route }) {
         </View>
 
         {/* Уведомление */}
-        <Text style={styles.label}>Напомнить за (дней)</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Напомнить за (дней)</Text>
         <View style={styles.notifyRow}>
           {['7', '14', '30', '60', '90'].map(days => (
             <TouchableOpacity
               key={days}
-              style={[styles.notifyBtn, notifyDaysBefore === days && styles.notifyBtnActive]}
+              style={[
+                styles.notifyBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+                notifyDaysBefore === days && styles.notifyBtnActive,
+                notifyDaysBefore === days && { backgroundColor: theme.primary, borderColor: theme.primary }
+              ]}
               onPress={() => setNotifyDaysBefore(days)}
             >
-              <Text style={[styles.notifyText, notifyDaysBefore === days && styles.notifyTextActive]}>
+              <Text style={[
+                styles.notifyText,
+                { color: notifyDaysBefore === days ? '#fff' : theme.textSecondary },
+                notifyDaysBefore === days && styles.notifyTextActive
+              ]}>
                 {days}
               </Text>
             </TouchableOpacity>
@@ -231,15 +255,15 @@ export default function AddDocumentScreen({ navigation, route }) {
         </View>
 
         {/* Фото */}
-        <Text style={styles.label}>Фото документа</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Фото документа</Text>
         <View style={styles.photoRow}>
-          <TouchableOpacity style={styles.photoBtn} onPress={takePhoto}>
+          <TouchableOpacity style={[styles.photoBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={takePhoto}>
             <Text style={styles.photoBtnIcon}>📷</Text>
-            <Text style={styles.photoBtnText}>Камера</Text>
+            <Text style={[styles.photoBtnText, { color: theme.textSecondary }]}>Камера</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.photoBtn} onPress={pickImage}>
+          <TouchableOpacity style={[styles.photoBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={pickImage}>
             <Text style={styles.photoBtnIcon}>🖼️</Text>
-            <Text style={styles.photoBtnText}>Галерея</Text>
+            <Text style={[styles.photoBtnText, { color: theme.textSecondary }]}>Галерея</Text>
           </TouchableOpacity>
         </View>
         {photo && (
@@ -252,9 +276,10 @@ export default function AddDocumentScreen({ navigation, route }) {
         )}
 
         {/* Заметки */}
-        <Text style={styles.label}>Заметки</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Заметки</Text>
         <TextInput
-          style={[styles.input, styles.textarea]}
+          style={[styles.input, styles.textarea, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="Дополнительная информация..."
           value={notes}
           onChangeText={setNotes}
@@ -264,7 +289,7 @@ export default function AddDocumentScreen({ navigation, route }) {
 
         {/* Кнопка сохранения */}
         <TouchableOpacity
-          style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
+          style={[styles.saveBtn, { backgroundColor: theme.primary }, loading && styles.saveBtnDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -281,7 +306,6 @@ export default function AddDocumentScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
@@ -291,13 +315,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   back: {
-    color: '#2563eb',
     marginBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
   },
   form: {
     padding: 16,
@@ -305,7 +327,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -439,7 +460,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveBtn: {
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

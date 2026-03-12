@@ -3,8 +3,12 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl
 } from 'react-native';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
+import FadeInView from '../components/FadeInView';
+import PressableScale from '../components/PressableScale';
 
 export default function GarageScreen({ navigation }) {
+  const { theme } = useTheme();
   const [cars, setCars] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -27,58 +31,62 @@ export default function GarageScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const renderCar = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.carCard}
-      onPress={() => navigation.navigate('CarDetail', { id: item.id })}
-    >
-      <Text style={styles.carTitle}>{item.brand_name} {item.model_name}</Text>
-      <Text style={styles.carInfo}>
-        {item.year && `${item.year} г.`}
-      </Text>
-      <View style={styles.carStats}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{(item.mileage || 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>км</Text>
-        </View>
-        {item.license_plate && (
-          <View style={styles.plate}>
-            <Text style={styles.plateText}>{item.license_plate}</Text>
+  const renderCar = ({ item, index }) => (
+    <FadeInView delay={120 + Math.min(index, 7) * 45}>
+      <PressableScale 
+        style={[styles.carCard, { backgroundColor: theme.surface }]}
+        onPress={() => navigation.navigate('CarDetail', { id: item.id })}
+      >
+        <Text style={[styles.carTitle, { color: theme.text }]}>{item.brand_name} {item.model_name}</Text>
+        <Text style={[styles.carInfo, { color: theme.textSecondary }]}> 
+          {item.year && `${item.year} г.`}
+        </Text>
+        <View style={styles.carStats}>
+          <View style={styles.stat}>
+            <Text style={[styles.statValue, { color: theme.primary }]}>{(item.mileage || 0).toLocaleString()}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>км</Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
+          {item.license_plate && (
+            <View style={[styles.plate, { backgroundColor: theme.softNeutral }]}> 
+              <Text style={[styles.plateText, { color: theme.text }]}>{item.license_plate}</Text>
+            </View>
+          )}
+        </View>
+      </PressableScale>
+    </FadeInView>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Гараж</Text>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.navigate('AddCar')}
-          >
-            <Text style={styles.addBtnText}>+ Добавить</Text>
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      <FadeInView delay={20}>
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}> 
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, { color: theme.text }]}>Гараж</Text>
+            <PressableScale
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => navigation.navigate('AddCar')}
+            >
+              <Text style={styles.addBtnText}>+ Добавить</Text>
+            </PressableScale>
+          </View>
         </View>
-      </View>
+      </FadeInView>
 
       <FlatList
         data={cars}
         keyExtractor={item => item.id.toString()}
         renderItem={renderCar}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>Нет автомобилей</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Нет автомобилей</Text>
+            <PressableScale
+              style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
               onPress={() => navigation.navigate('AddCar')}
             >
               <Text style={styles.emptyBtnText}>Добавить первый авто</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         }
       />

@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import ModalPicker from '../components/ModalPicker';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddCarScreen({ navigation }) {
+  const { theme } = useTheme();
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [brandId, setBrandId] = useState(null);
@@ -79,16 +81,16 @@ export default function AddCarScreen({ navigation }) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← Отмена</Text>
+          <Text style={[styles.back, { color: theme.primary }]}>← Отмена</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Добавить авто</Text>
+        <Text style={[styles.title, { color: theme.text }]}>Добавить авто</Text>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Марка *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Марка *</Text>
         <ModalPicker
           items={brands.map(b => ({ label: b.name, value: b.id }))}
           selectedValue={brandId}
@@ -96,7 +98,7 @@ export default function AddCarScreen({ navigation }) {
           placeholder="Выберите марку"
         />
 
-        <Text style={styles.label}>Модель *</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Модель *</Text>
         <ModalPicker
           items={models.map(m => ({ label: m.name, value: m.id }))}
           selectedValue={modelId}
@@ -105,9 +107,10 @@ export default function AddCarScreen({ navigation }) {
           enabled={models.length > 0}
         />
 
-        <Text style={styles.label}>Год выпуска</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Год выпуска</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="2020"
           value={year}
           onChangeText={setYear}
@@ -115,18 +118,20 @@ export default function AddCarScreen({ navigation }) {
           maxLength={4}
         />
 
-        <Text style={styles.label}>Пробег (км)</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Пробег (км)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="50000"
           value={mileage}
           onChangeText={setMileage}
           keyboardType="numeric"
         />
 
-        <Text style={styles.label}>Госномер</Text>
+        <Text style={[styles.label, { color: theme.text }]}>Госномер</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="А123БВ777"
           value={licensePlate}
           onChangeText={setLicensePlate}
@@ -134,9 +139,10 @@ export default function AddCarScreen({ navigation }) {
           maxLength={20}
         />
 
-        <Text style={styles.label}>VIN</Text>
+        <Text style={[styles.label, { color: theme.text }]}>VIN</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }]}
+          placeholderTextColor={theme.textSecondary}
           placeholder="XXXXXXXXXXXXXXXXX"
           value={vin}
           onChangeText={setVin}
@@ -145,7 +151,7 @@ export default function AddCarScreen({ navigation }) {
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.primary }, loading && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={loading}
         >
@@ -162,7 +168,6 @@ export default function AddCarScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
   },
   header: {
     padding: 20,
@@ -172,13 +177,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   back: {
-    color: '#2563eb',
     marginBottom: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
   },
   form: {
     padding: 16,
@@ -186,7 +189,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
     marginTop: 16,
   },
@@ -209,7 +211,6 @@ const styles = StyleSheet.create({
     height: 50,
   },
   button: {
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',

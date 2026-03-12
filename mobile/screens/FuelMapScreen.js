@@ -1,9 +1,12 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert,
+  View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, Modal, TextInput,
+  KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard,
 } from 'react-native';
 import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
+import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Поиск заправок через Overpass API
 async function fetchFuelStations(lat, lon, radius = 5000) {
@@ -59,8 +62,16 @@ function getDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default function FuelMapScreen() {
+  const { theme } = useTheme();
   const [location, setLocation] = useState(null);
   const [stations, setStations] = useState([]);
+  const [reviewsSummary, setReviewsSummary] = useState({});
+  const [stationReviews, setStationReviews] = useState([]);
+  const [stationMyReview, setStationMyReview] = useState(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [route, setRoute] = useState(null);
   const [selectedStation, setSelectedStation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +82,63 @@ export default function FuelMapScreen() {
   useEffect(() => {
     getLocation();
   }, []);
+
+  const loadReviewsSummary = async (stationsList) => {
+    try {
+      const ids = stationsList.map((s) => s.id);
+      if (ids.length === 0) {
+        setReviewsSummary({});
+        return;
+      }
+
+      const res = await api.get('/fuel-reviews/summary', {
+        params: { stationIds: ids.join(',') },
+      });
+
+      const summaryMap = {};
+      (res.data.summaries || []).forEach((row) => {
+        summaryMap[String(row.station_osm_id)] = {
+          avgRating: Number(row.avg_rating),
+          reviewsCount: row.reviews_count,
+        };
+      });
+      setReviewsSummary(summaryMap);
+    } catch {
+      setReviewsSummary({});
+    }
+  };
+
+  const loadStationReviews = async (stationId) => {
+    setReviewsLoading(true);
+    try {
+      const res = await api.get(`/fuel-reviews/${stationId}`);
+      const summary = res.data.summary || {};
+
+      setStationReviews(res.data.reviews || []);
+      setStationMyReview(res.data.myReview || null);
+      setReviewsSummary((prev) => ({
+        ...prev,
+        [String(stationId)]: {
+          avgRating: summary.avgRating,
+          reviewsCount: summary.reviewsCount || 0,
+        },
+      }));
+
+      if (res.data.myReview) {
+        setReviewForm({
+          rating: res.data.myReview.rating,
+          comment: res.data.myReview.comment || '',
+        });
+      } else {
+        setReviewForm({ rating: 5, comment: '' });
+      }
+    } catch {
+      setStationReviews([]);
+      setStationMyReview(null);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
 
   const getLocation = async () => {
     setLoading(true);
@@ -104,6 +172,7 @@ export default function FuelMapScreen() {
         }))
         .sort((a, b) => a.distance - b.distance);
       setStations(sorted);
+      await loadReviewsSummary(sorted);
     } catch (e) {
       Alert.alert('Ошибка', 'Не удалось получить местоположение');
     }
@@ -115,6 +184,7 @@ export default function FuelMapScreen() {
     setRouteLoading(true);
     setSelectedStation(station);
     setShowList(false);
+    loadStationReviews(station.id);
     try {
       const routeData = await fetchRoute(
         location.latitude, location.longitude,
@@ -136,6 +206,8 @@ export default function FuelMapScreen() {
   const clearRoute = () => {
     setRoute(null);
     setSelectedStation(null);
+    setStationReviews([]);
+    setStationMyReview(null);
     if (location && mapRef.current) {
       mapRef.current.animateToRegion({
         ...location,
@@ -145,11 +217,32 @@ export default function FuelMapScreen() {
     }
   };
 
+  const submitReview = async () => {
+    if (!selectedStation) {
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      await api.post(`/fuel-reviews/${selectedStation.id}`, {
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      });
+      await loadStationReviews(selectedStation.id);
+      setReviewModalVisible(false);
+    } catch (e) {
+      const message = e.response?.data?.error || 'Не удалось сохранить отзыв';
+      Alert.alert('Ошибка', message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Определяем местоположение...</Text>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Определяем местоположение...</Text>
       </View>
     );
   }
@@ -157,8 +250,8 @@ export default function FuelMapScreen() {
   if (!location) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Не удалось определить местоположение</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={getLocation}>
+        <Text style={[styles.errorText, { color: theme.danger }]}>Не удалось определить местоположение</Text>
+        <TouchableOpacity style={[styles.retryBtn, { backgroundColor: theme.primary }]} onPress={getLocation}>
           <Text style={styles.retryBtnText}>Повторить</Text>
         </TouchableOpacity>
       </View>
@@ -166,7 +259,7 @@ export default function FuelMapScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
       {/* Карта */}
       <MapView
         ref={mapRef}
@@ -192,6 +285,11 @@ export default function FuelMapScreen() {
                 <Text style={styles.calloutTitle}>{s.name}</Text>
                 {s.brand ? <Text style={styles.calloutSub}>{s.brand}</Text> : null}
                 <Text style={styles.calloutDist}>{s.distance.toFixed(1)} км</Text>
+                <Text style={styles.calloutRating}>
+                  {reviewsSummary[String(s.id)]?.avgRating
+                    ? `★ ${reviewsSummary[String(s.id)].avgRating} (${reviewsSummary[String(s.id)].reviewsCount})`
+                    : 'Нет отзывов'}
+                </Text>
               </View>
             </Callout>
           </Marker>
@@ -210,45 +308,58 @@ export default function FuelMapScreen() {
       {/* Панель управления */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.topBtn} onPress={getLocation}>
-          <Text style={styles.topBtnText}>↻</Text>
+          <Text style={[styles.topBtnText, { color: theme.text }]}>↻</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.topBtn, styles.listBtn]}
           onPress={() => setShowList(!showList)}
         >
-          <Text style={styles.topBtnText}>☰ {stations.length}</Text>
+          <Text style={[styles.topBtnText, { color: theme.text }]}>☰ {stations.length}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Информация о маршруте */}
       {route && selectedStation && (
-        <View style={styles.routeInfo}>
+        <View style={[styles.routeInfo, { backgroundColor: theme.surface }]}>
           <View style={styles.routeDetails}>
-            <Text style={styles.routeName}>{selectedStation.name}</Text>
-            <Text style={styles.routeMeta}>
+            <Text style={[styles.routeName, { color: theme.text }]}>{selectedStation.name}</Text>
+            <Text style={[styles.routeMeta, { color: theme.primary }]}>
               {route.distance} км • ~{route.duration} мин
             </Text>
+            <Text style={[styles.routeRating, { color: theme.warning }]}>
+              {reviewsSummary[String(selectedStation.id)]?.avgRating
+                ? `★ ${reviewsSummary[String(selectedStation.id)].avgRating} (${reviewsSummary[String(selectedStation.id)].reviewsCount})`
+                : 'Нет отзывов'}
+            </Text>
+            {stationReviews[0]?.comment ? (
+              <Text style={[styles.routeReviewPreview, { color: theme.textSecondary }]} numberOfLines={1}>
+                "{stationReviews[0].comment}"
+              </Text>
+            ) : null}
+            <TouchableOpacity style={[styles.reviewBtn, { backgroundColor: theme.primary }]} onPress={() => setReviewModalVisible(true)}>
+              <Text style={styles.reviewBtnText}>{stationMyReview ? 'Обновить отзыв' : 'Оставить отзыв'}</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.clearBtn} onPress={clearRoute}>
-            <Text style={styles.clearBtnText}>✕</Text>
+          <TouchableOpacity style={[styles.clearBtn, { backgroundColor: theme.softNeutral }]} onPress={clearRoute}>
+            <Text style={[styles.clearBtnText, { color: theme.textSecondary }]}>✕</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {routeLoading && (
         <View style={styles.routeLoadingOverlay}>
-          <ActivityIndicator size="small" color="#2563eb" />
-          <Text style={styles.routeLoadingText}>Строим маршрут...</Text>
+          <ActivityIndicator size="small" color={theme.primary} />
+          <Text style={[styles.routeLoadingText, { color: theme.text }]}>Строим маршрут...</Text>
         </View>
       )}
 
       {/* Список заправок */}
       {showList && (
-        <View style={styles.listPanel}>
+        <View style={[styles.listPanel, { backgroundColor: theme.surface }]}> 
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>АЗС рядом ({stations.length})</Text>
+            <Text style={[styles.listTitle, { color: theme.text }]}>АЗС рядом ({stations.length})</Text>
             <TouchableOpacity onPress={() => setShowList(false)}>
-              <Text style={styles.listClose}>✕</Text>
+              <Text style={[styles.listClose, { color: theme.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -258,22 +369,114 @@ export default function FuelMapScreen() {
               <TouchableOpacity
                 style={[
                   styles.stationItem,
+                  { borderBottomColor: theme.border },
                   selectedStation?.id === item.id && styles.stationItemActive,
+                  selectedStation?.id === item.id && { backgroundColor: theme.softPrimary },
                 ]}
                 onPress={() => buildRoute(item)}
               >
                 <View>
-                  <Text style={styles.stationName}>{item.name}</Text>
+                  <Text style={[styles.stationName, { color: theme.text }]}>{item.name}</Text>
                   {item.brand ? (
-                    <Text style={styles.stationBrand}>{item.brand}</Text>
+                    <Text style={[styles.stationBrand, { color: theme.textSecondary }]}>{item.brand}</Text>
                   ) : null}
+                  <Text style={[styles.stationRating, { color: theme.warning }]}>
+                    {reviewsSummary[String(item.id)]?.avgRating
+                      ? `★ ${reviewsSummary[String(item.id)].avgRating} (${reviewsSummary[String(item.id)].reviewsCount})`
+                      : 'Нет оценок'}
+                  </Text>
                 </View>
-                <Text style={styles.stationDist}>{item.distance.toFixed(1)} км</Text>
+                <Text style={[styles.stationDist, { color: theme.primary }]}>{item.distance.toFixed(1)} км</Text>
               </TouchableOpacity>
             )}
           />
         </View>
       )}
+
+      <Modal
+        visible={reviewModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReviewModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardWrapper}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalCard, { backgroundColor: theme.surface }]}> 
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Отзыв об АЗС</Text>
+                  <Text style={[styles.modalStationName, { color: theme.textSecondary }]}>{selectedStation?.name}</Text>
+
+                  <Text style={[styles.modalLabel, { color: theme.text }]}>Оценка</Text>
+                  <View style={styles.ratingRow}>
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <TouchableOpacity
+                        key={value}
+                            style={[
+                              styles.ratingChip,
+                              { borderColor: theme.border },
+                              reviewForm.rating === value && styles.ratingChipActive,
+                              reviewForm.rating === value && { backgroundColor: theme.primary, borderColor: theme.primary },
+                            ]}
+                        onPress={() => setReviewForm((prev) => ({ ...prev, rating: value }))}
+                      >
+                        <Text
+                              style={[
+                                styles.ratingChipText,
+                                { color: theme.text },
+                                reviewForm.rating === value && styles.ratingChipTextActive,
+                              ]}
+                        >
+                          {value}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.modalLabel, { color: theme.text }]}>Комментарий</Text>
+                  <TextInput
+                    style={[styles.modalInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500}
+                    placeholder="Что понравилось/не понравилось"
+                    placeholderTextColor={theme.textSecondary}
+                    value={reviewForm.comment}
+                    onChangeText={(text) => setReviewForm((prev) => ({ ...prev, comment: text }))}
+                  />
+
+                  {reviewsLoading ? (
+                    <ActivityIndicator size="small" color={theme.primary} style={{ marginBottom: 10 }} />
+                  ) : null}
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: theme.softNeutral }]} onPress={() => setReviewModalVisible(false)}>
+                      <Text style={[styles.modalCancelText, { color: theme.text }]}>Отмена</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalSubmitBtn, { backgroundColor: theme.primary }]}
+                      onPress={submitReview}
+                      disabled={reviewSubmitting}
+                    >
+                      <Text style={styles.modalSubmitText}>
+                        {reviewSubmitting ? 'Сохранение...' : 'Сохранить'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -358,6 +561,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  calloutRating: {
+    color: '#92400e',
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '600',
+  },
   routeInfo: {
     position: 'absolute',
     bottom: 30,
@@ -388,6 +597,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     fontWeight: '500',
+  },
+  routeRating: {
+    color: '#92400e',
+    fontSize: 13,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  routeReviewPreview: {
+    color: '#475569',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  reviewBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  reviewBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   clearBtn: {
     width: 32,
@@ -476,9 +709,110 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
+  stationRating: {
+    color: '#92400e',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
   stationDist: {
     color: '#2563eb',
     fontWeight: '600',
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalKeyboardWrapper: {
+    flex: 1,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    maxHeight: '82%',
+  },
+  modalScrollContent: {
+    paddingBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  modalStationName: {
+    marginTop: 4,
+    color: '#64748b',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  modalLabel: {
+    fontSize: 13,
+    color: '#334155',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  ratingChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  ratingChipText: {
+    color: '#334155',
+    fontWeight: '600',
+  },
+  ratingChipTextActive: {
+    color: '#fff',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minHeight: 88,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+  },
+  modalCancelText: {
+    color: '#334155',
+    fontWeight: '600',
+  },
+  modalSubmitBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#2563eb',
+  },
+  modalSubmitText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

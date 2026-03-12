@@ -4,6 +4,9 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
+import FadeInView from '../components/FadeInView';
+import PressableScale from '../components/PressableScale';
 
 const DOC_TYPE_NAMES = {
   license: 'Водительское удостоверение',
@@ -28,6 +31,7 @@ const DOC_TYPE_ICONS = {
 };
 
 export default function DocumentsScreen({ navigation }) {
+  const { theme } = useTheme();
   const [documents, setDocuments] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -94,34 +98,36 @@ export default function DocumentsScreen({ navigation }) {
     }
   };
 
-  const renderDocument = ({ item }) => {
+  const renderDocument = ({ item, index }) => {
     const expiry = getExpiryStatus(item.expiry_date);
     
     return (
-      <TouchableOpacity 
-        style={styles.card}
-        onPress={() => navigation.navigate('AddDocument', { document: item })}
-        onLongPress={() => handleDelete(item.id, item.title)}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardIcon}>{DOC_TYPE_ICONS[item.doc_type] || '📎'}</Text>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardType}>{DOC_TYPE_NAMES[item.doc_type]}</Text>
-            {item.brand_name && (
-              <Text style={styles.cardCar}>🚗 {item.brand_name} {item.model_name}</Text>
-            )}
+      <FadeInView delay={130 + Math.min(index, 8) * 45}>
+        <PressableScale 
+          style={[styles.card, { backgroundColor: theme.surface }]}
+          onPress={() => navigation.navigate('AddDocument', { document: item })}
+          onLongPress={() => handleDelete(item.id, item.title)}
+        >
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardIcon}>{DOC_TYPE_ICONS[item.doc_type] || '📎'}</Text>
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
+              <Text style={[styles.cardType, { color: theme.textSecondary }]}>{DOC_TYPE_NAMES[item.doc_type]}</Text>
+              {item.brand_name && (
+                <Text style={[styles.cardCar, { color: theme.textSecondary }]}>🚗 {item.brand_name} {item.model_name}</Text>
+              )}
+            </View>
+            <View style={[styles.expiryBadge, { backgroundColor: expiry.color + '20' }]}>
+              <Text style={[styles.expiryText, { color: expiry.color }]}>
+                {expiry.text}
+              </Text>
+            </View>
           </View>
-          <View style={[styles.expiryBadge, { backgroundColor: expiry.color + '20' }]}>
-            <Text style={[styles.expiryText, { color: expiry.color }]}>
-              {expiry.text}
-            </Text>
-          </View>
-        </View>
-        {item.doc_number && (
-          <Text style={styles.cardNumber}>№ {item.doc_number}</Text>
-        )}
-      </TouchableOpacity>
+          {item.doc_number && (
+            <Text style={[styles.cardNumber, { color: theme.textSecondary }]}>№ {item.doc_number}</Text>
+          )}
+        </PressableScale>
+      </FadeInView>
     );
   };
 
@@ -131,26 +137,30 @@ export default function DocumentsScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Документы</Text>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.navigate('AddDocument')}
-          >
-            <Text style={styles.addBtnText}>+ Добавить</Text>
-          </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      <FadeInView delay={20}>
+        <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}> 
+          <View style={styles.headerRow}>
+            <Text style={[styles.title, { color: theme.text }]}>Документы</Text>
+            <PressableScale
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => navigation.navigate('AddDocument')}
+            >
+              <Text style={styles.addBtnText}>+ Добавить</Text>
+            </PressableScale>
+          </View>
         </View>
-      </View>
+      </FadeInView>
 
       {expiringDocs.length > 0 && (
-        <View style={styles.alertBanner}>
-          <Text style={styles.alertIcon}>⚠️</Text>
-          <Text style={styles.alertText}>
-            {expiringDocs.length} док. требуют внимания
-          </Text>
-        </View>
+        <FadeInView delay={90}>
+          <View style={[styles.alertBanner, { backgroundColor: theme.softWarning }]}> 
+            <Text style={styles.alertIcon}>⚠️</Text>
+            <Text style={[styles.alertText, { color: theme.warning }]}>
+              {expiringDocs.length} док. требуют внимания
+            </Text>
+          </View>
+        </FadeInView>
       )}
 
       <FlatList
@@ -158,17 +168,17 @@ export default function DocumentsScreen({ navigation }) {
         keyExtractor={item => item.id.toString()}
         renderItem={renderDocument}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📂</Text>
-            <Text style={styles.emptyText}>Нет документов</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Нет документов</Text>
+            <PressableScale
+              style={[styles.emptyBtn, { backgroundColor: theme.primary }]}
               onPress={() => navigation.navigate('AddDocument')}
             >
               <Text style={styles.emptyBtnText}>Добавить первый документ</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </View>
         }
       />
